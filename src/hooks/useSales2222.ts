@@ -65,58 +65,19 @@ export function useSales() {
       paymentMethod: PaymentMethod;
       notes?: string;
     }) => {
+      console.log('🔍 Estado de conexión:', { isOnline, navigatorOnline: navigator.onLine });
+      
       if (!currentBusiness || !user) throw new Error('No business or user');
 
       const total = items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
-      const tempId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-      console.log('🔍 Intentando procesar venta...');
-
-      // 🔥 NUEVO ENFOQUE: Siempre intentar guardar online primero
-      try {
-        // Intentar con timeout de 5 segundos
-        const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('Network timeout')), 5000);
-        });
-
-        const salePromise = supabase.rpc('process_sale' as any, {
-          p_business_id: currentBusiness.id,
-          p_user_id: user.id,
-          p_total: total,
-          p_payment_method: paymentMethod,
-          p_notes: notes || null,
-          p_items: items.map(item => ({
-            product_id: item.productId,
-            quantity: item.quantity,
-            price: item.unitPrice,
-          })),
-          p_temp_id: tempId,
-        });
-
-        const { data, error } = await Promise.race([
-          salePromise,
-          timeoutPromise
-        ]) as any;
-
-        if (error) throw error;
-
-        const result = data as { success: boolean; sale_id: string; message: string; error?: string };
+      // MODO OFFLINE
+      if (!isOnline || !navigator.onLine) {
+        console.log('📱 Guardando venta offline');
         
-        if (!result.success) {
-          throw new Error(result.error || 'Error al procesar la venta');
-        }
-
-        console.log('✅ Venta procesada online exitosamente');
-        return { id: result.sale_id, offline: false };
-
-      } catch (error) {
-        // 🔥 SI FALLA: Guardar offline automáticamente
-        console.log('⚠️ No se pudo procesar online, guardando offline...');
-        console.error('Error:', error);
-
         try {
-          // 1. Guardar venta en cola offline
-          const offlineTempId = await addPendingSale({
+          // 1. Guardar venta en cola (ahora usando IndexedDB)
+          const tempId = await addPendingSale({
             businessId: currentBusiness.id,
             userId: user.id,
             items,
@@ -126,12 +87,12 @@ export function useSales() {
           });
           
           // 2. Actualizar stock en IndexedDB
-          console.log('📦 Actualizando stock local...');
+          console.log('📦 Actualizando stock local en IndexedDB...');
           for (const item of items) {
             await productsDB.updateProductStock(item.productId, item.quantity);
           }
           
-          // 3. Actualizar UI inmediatamente
+          // 3. Actualizar stock en React Query para UI inmediata
           queryClient.setQueryData(['products', currentBusiness.id], (oldProducts: any) => {
             if (!oldProducts) return oldProducts;
             
@@ -139,7 +100,7 @@ export function useSales() {
               const cartItem = items.find(item => item.productId === product.id);
               if (cartItem) {
                 const newStock = product.stock - cartItem.quantity;
-                console.log(`✅ Stock actualizado: ${product.name} ${product.stock} → ${newStock}`);
+                console.log(`✅ Stock UI actualizado: ${product.name} ${product.stock} → ${newStock}`);
                 return {
                   ...product,
                   stock: newStock,
@@ -152,22 +113,56 @@ export function useSales() {
             });
           });
           
-          console.log('✅ Venta guardada offline exitosamente');
-          return { id: offlineTempId, offline: true };
+          console.log('✅ Venta offline procesada completamente');
+          return { id: tempId, offline: true };
           
-        } catch (offlineError) {
-          console.error('❌ Error guardando offline:', offlineError);
-          throw new Error('No se pudo procesar la venta ni online ni offline');
+        } catch (error) {
+          console.error('❌ Error procesando venta offline:', error);
+          throw error;
         }
       }
+
+      // MODO ONLINE
+      console.log('🌐 Procesando venta online');
+
+      // Generate a temp_id even for online sales to prevent duplicates on retry
+      const tempId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+      // Use the atomic process_sale function that handles sale creation + stock update
+      // ⚠️ CAMBIO IMPORTANTE: Usar product_id (con guion bajo) en lugar de productId
+      const { data, error } = await supabase.rpc('process_sale' as any, {
+        p_business_id: currentBusiness.id,
+        p_user_id: user.id,
+        p_total: total,
+        p_payment_method: paymentMethod,
+        p_notes: notes || null,
+        p_items: items.map(item => ({
+          product_id: item.productId,    // ✅ CORREGIDO: product_id con guion bajo
+          quantity: item.quantity,
+          price: item.unitPrice,         // ✅ CORREGIDO: price en lugar de unitPrice
+        })),
+        p_temp_id: tempId,
+      });
+
+      if (error) {
+        console.error('Error en process_sale:', error);
+        throw error;
+      }
+
+      // La función devuelve un JSONB, extraer el sale_id
+      const result = data as { success: boolean; sale_id: string; message: string; error?: string };
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Error al procesar la venta');
+      }
+
+      return { id: result.sale_id, offline: false };
     },
     onSuccess: (data) => {
-      // Invalidar queries para refrescar datos
       queryClient.invalidateQueries({ queryKey: ['sales', currentBusiness?.id] });
       queryClient.invalidateQueries({ queryKey: ['products', currentBusiness?.id] });
       queryClient.invalidateQueries({ queryKey: ['alerts', currentBusiness?.id] });
       
-      // Notificaciones
       if (data.offline) {
         toast.success('Venta guardada localmente (sin conexión)');
       } else {

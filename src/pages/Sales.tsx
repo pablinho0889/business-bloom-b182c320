@@ -7,7 +7,7 @@ import { useSales, CartItem } from '@/hooks/useSales';
 import AppHeader from '@/components/layout/AppHeader';
 import BottomNav from '@/components/layout/BottomNav';
 import ProductCardSales from '@/components/sales/ProductCardSales';
-import ConnectionStatus from '@/components/sales/ConnectionStatus';
+import SyncPanel from '@/components/sales/SyncPanel';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -23,7 +23,7 @@ export default function Sales() {
   const { user } = useAuth();
   const { currentBusiness, isOwner, isClerk } = useBusiness();
   const { activeProducts, isLoading } = useProducts();
-  const { createSale, isOnline, isSyncing, pendingCount } = useSales();
+  const { createSale, isOnline, isSyncing, pendingCount, pendingSales, syncAllPendingSales } = useSales();
 
   const [cart, setCart] = useState<CartItem[]>([]);
   const [showCheckout, setShowCheckout] = useState(false);
@@ -123,7 +123,14 @@ export default function Sales() {
   return (
     <div className="page-container">
       <AppHeader title="Nueva Venta" />
-      <ConnectionStatus isOnline={isOnline} isSyncing={isSyncing} pendingCount={pendingCount} />
+      
+      {/* Panel de sincronización mejorado */}
+      <SyncPanel 
+        isOnline={isOnline}
+        isSyncing={isSyncing}
+        pendingSales={pendingSales || []}
+        onSync={syncAllPendingSales}
+      />
 
       <main className="p-4 space-y-4">
         <Input

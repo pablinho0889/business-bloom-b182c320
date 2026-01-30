@@ -31,77 +31,67 @@ export function useProducts() {
     queryFn: async () => {
       if (!currentBusiness) return [];
 
-      // 🔥 PASO 1: Intentar cargar desde IndexedDB primero (más rápido)
-      const cachedProducts = await productsDB.getProducts(currentBusiness.id);
-      
-      // 🔥 PASO 2: Si no estamos online, retornar caché inmediatamente
-      if (!navigator.onLine) {
-        console.log('📴 Sin conexión - Usando caché de IndexedDB');
-        if (cachedProducts.length === 0) {
-          console.warn('⚠️ No hay productos en caché');
-        }
-        return cachedProducts;
-      }
-
-      // 🔥 PASO 3: Si hay caché, mostrarlo mientras cargamos de Supabase
-      if (cachedProducts.length > 0) {
-        console.log(`📦 Mostrando ${cachedProducts.length} productos del caché mientras cargamos...`);
-        // Los retornamos temporalmente
-        // React Query seguirá intentando en background
-      }
-
-      // 🔥 PASO 4: Intentar cargar de Supabase con timeout
       try {
-        console.log('🌐 Intentando actualizar desde Supabase...');
-        
-        // Crear una promesa de timeout
-        const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('Timeout')), 5000); // 5 segundos
-        });
+        // Si estamos online, obtener de Supabase
+        if (navigator.onLine) {
+          console.log('🌐 Cargando productos desde Supabase...');
+          
+          const { data, error } = await supabase
+            .from('products')
+            .select('*')
+            .eq('business_id', currentBusiness.id)
+            .order('name');
 
-        // Raza entre la petición y el timeout
-        const dataPromise = supabase
-          .from('products')
-          .select('*')
-          .eq('business_id', currentBusiness.id)
-          .order('name');
+          if (error) throw error;
 
-        const { data, error } = await Promise.race([
-          dataPromise,
-          timeoutPromise
-        ]) as any;
+          const productsWithStatus = data.map(product => ({
+            ...product,
+            stockStatus: getStockStatus(product.stock, product.min_stock),
+          })) as ProductWithStatus[];
 
-        if (error) throw error;
+          // Guardar en IndexedDB para uso offline
+          await productsDB.saveProducts(productsWithStatus, currentBusiness.id);
+          console.log(`💾 ${productsWithStatus.length} productos guardados en IndexedDB`);
 
-        const productsWithStatus = data.map((product: any) => ({
-          ...product,
-          stockStatus: getStockStatus(product.stock, product.min_stock),
-        })) as ProductWithStatus[];
-
-        // Guardar en IndexedDB
-        await productsDB.saveProducts(productsWithStatus, currentBusiness.id);
-        console.log(`💾 ${productsWithStatus.length} productos actualizados en IndexedDB`);
-
-        return productsWithStatus;
-      } catch (error: any) {
-        // 🔥 PASO 5: Si falla, usar caché sin quejas
-        console.log('⚠️ No se pudo conectar a Supabase, usando caché');
-        
-        if (cachedProducts.length > 0) {
-          console.log(`📦 Usando ${cachedProducts.length} productos del caché`);
-          return cachedProducts;
+          return productsWithStatus;
         } else {
-          console.error('❌ Sin caché y sin conexión');
-          throw new Error('Sin conexión y sin datos guardados');
+          // Si estamos offline, cargar desde IndexedDB
+          console.log('📴 Modo offline: cargando productos desde IndexedDB...');
+          const cachedProducts = await productsDB.getProducts(currentBusiness.id);
+          
+          if (cachedProducts.length === 0) {
+            console.warn('⚠️ No hay productos en caché');
+          }
+          
+          return cachedProducts;
         }
+      } catch (error) {
+        console.error('❌ Error cargando productos:', error);
+        
+        // Si falla online, intentar cargar desde caché
+        if (navigator.onLine) {
+          console.log('🔄 Intentando cargar desde caché como fallback...');
+          try {
+            const cachedProducts = await productsDB.getProducts(currentBusiness.id);
+            if (cachedProducts.length > 0) {
+              console.log(`📦 ${cachedProducts.length} productos cargados desde caché (fallback)`);
+              return cachedProducts;
+            }
+          } catch (cacheError) {
+            console.error('❌ Error cargando caché:', cacheError);
+          }
+        }
+        
+        throw error;
       }
     },
     enabled: !!currentBusiness,
-    staleTime: 2 * 60 * 1000, // 2 minutos - considerarlos frescos
-    gcTime: 24 * 60 * 60 * 1000, // 24 horas en caché
-    retry: false, // No reintentar automáticamente
-    refetchOnWindowFocus: false, // No recargar al enfocar ventana
-    refetchOnReconnect: true, // Sí recargar al reconectar
+    staleTime: 5 * 60 * 1000, // 5 minutos
+    gcTime: 24 * 60 * 60 * 1000, // 24 horas
+    retry: (failureCount, error: any) => {
+      if (!navigator.onLine) return false;
+      return failureCount < 2;
+    },
   });
 
   const createProduct = useMutation({
@@ -170,9 +160,11 @@ export function useProducts() {
 
   const activeProducts = products.filter(p => p.is_active);
 
+  // Función para limpiar caché
   const clearCache = async () => {
     try {
       if (currentBusiness) {
+        // En una versión futura, podríamos añadir deleteProducts a offlineDB
         console.log('🗑️ Limpieza de caché solicitada');
       }
     } catch (error) {
