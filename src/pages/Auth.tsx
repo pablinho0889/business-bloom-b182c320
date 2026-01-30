@@ -63,8 +63,8 @@ export default function Auth() {
           <div className="mx-auto mb-4 h-14 w-14 rounded-xl gradient-primary flex items-center justify-center">
             <Store className="h-7 w-7 text-primary-foreground" />
           </div>
-          <CardTitle className="text-2xl">GestiónPro</CardTitle>
-          <CardDescription>Sistema de gestión para tu negocio</CardDescription>
+          <CardTitle className="text-2xl">Mi Puntico</CardTitle>
+          <CardDescription>Tu negocio, bajo control</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="login">
