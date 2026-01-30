@@ -1,0 +1,307 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================
+   SISTEMA DE DISEÑO - GESTIÓN DE NEGOCIOS
+   Mobile-first, limpio, profesional
+   ============================================ */
+
+@layer base {
+  :root {
+    /* Colores principales - Azul profundo profesional */
+    --background: 210 20% 98%;
+    --foreground: 222 47% 11%;
+
+    /* Superficies */
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    /* Primario - Azul profundo */
+    --primary: 217 91% 40%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Secundario - Gris suave */
+    --secondary: 210 20% 96%;
+    --secondary-foreground: 222 47% 11%;
+
+    /* Muted */
+    --muted: 210 20% 96%;
+    --muted-foreground: 215 16% 47%;
+
+    /* Acento - Naranja cálido */
+    --accent: 25 95% 53%;
+    --accent-foreground: 0 0% 100%;
+
+    /* Estados */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    /* Bordes e inputs */
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 217 91% 40%;
+
+    --radius: 0.75rem;
+
+    /* Stock levels */
+    --stock-normal: 142 76% 36%;
+    --stock-low: 38 92% 50%;
+    --stock-critical: 0 84% 60%;
+    --stock-out: 0 0% 45%;
+
+    /* Sidebar */
+    --sidebar-background: 222 47% 11%;
+    --sidebar-foreground: 210 20% 98%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 217 91% 20%;
+    --sidebar-accent-foreground: 210 20% 98%;
+    --sidebar-border: 217 32% 20%;
+    --sidebar-ring: 217 91% 60%;
+  }
+
+  .dark {
+    --background: 222 47% 6%;
+    --foreground: 210 20% 98%;
+
+    --card: 222 47% 8%;
+    --card-foreground: 210 20% 98%;
+
+    --popover: 222 47% 8%;
+    --popover-foreground: 210 20% 98%;
+
+    --primary: 217 91% 60%;
+    --primary-foreground: 222 47% 11%;
+
+    --secondary: 217 32% 17%;
+    --secondary-foreground: 210 20% 98%;
+
+    --muted: 217 32% 17%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 25 95% 53%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 142 76% 46%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 55%;
+    --warning-foreground: 0 0% 100%;
+
+    --border: 217 32% 20%;
+    --input: 217 32% 20%;
+    --ring: 217 91% 60%;
+
+    --stock-normal: 142 76% 46%;
+    --stock-low: 38 92% 55%;
+    --stock-critical: 0 62% 50%;
+    --stock-out: 0 0% 50%;
+
+    --sidebar-background: 222 47% 4%;
+    --sidebar-foreground: 210 20% 98%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 217 32% 15%;
+    --sidebar-accent-foreground: 210 20% 98%;
+    --sidebar-border: 217 32% 15%;
+    --sidebar-ring: 217 91% 60%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+
+  /* Scrollbar personalizada */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/20 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/30;
+  }
+}
+
+@layer components {
+  /* Botón de producto para venta rápida */
+  .product-btn {
+    @apply relative flex flex-col items-center justify-center p-4 rounded-xl 
+           bg-card border-2 border-transparent 
+           shadow-sm hover:shadow-md hover:border-primary/30
+           transition-all duration-200 active:scale-95
+           min-h-[100px] touch-manipulation;
+  }
+
+  .product-btn-selected {
+    @apply border-primary bg-primary/5 shadow-md;
+  }
+
+  /* Card de estadística */
+  .stat-card {
+    @apply flex flex-col gap-1 p-4 rounded-xl bg-card shadow-sm;
+  }
+
+  /* Badge de stock */
+  .stock-badge {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .stock-normal {
+    @apply bg-[hsl(var(--stock-normal)/0.15)] text-[hsl(var(--stock-normal))];
+  }
+
+  .stock-low {
+    @apply bg-[hsl(var(--stock-low)/0.15)] text-[hsl(var(--stock-low))];
+  }
+
+  .stock-critical {
+    @apply bg-[hsl(var(--stock-critical)/0.15)] text-[hsl(var(--stock-critical))];
+  }
+
+  .stock-out {
+    @apply bg-[hsl(var(--stock-out)/0.15)] text-[hsl(var(--stock-out))];
+  }
+
+  /* Navegación inferior móvil */
+  .bottom-nav {
+    @apply fixed bottom-0 left-0 right-0 bg-card border-t border-border
+           flex items-center justify-around py-2 px-4 z-50
+           safe-area-inset-bottom;
+  }
+
+  .bottom-nav-item {
+    @apply flex flex-col items-center gap-1 px-3 py-2 rounded-lg
+           text-muted-foreground transition-colors
+           active:bg-muted touch-manipulation;
+  }
+
+  .bottom-nav-item.active {
+    @apply text-primary;
+  }
+
+  /* Header con contexto de negocio */
+  .app-header {
+    @apply sticky top-0 z-40 bg-card/95 backdrop-blur-sm border-b border-border
+           px-4 py-3 safe-area-inset-top;
+  }
+
+  /* Empty state */
+  .empty-state {
+    @apply flex flex-col items-center justify-center py-12 px-4 text-center;
+  }
+
+  /* Loading skeleton */
+  .skeleton-shimmer {
+    @apply relative overflow-hidden bg-muted;
+  }
+
+  .skeleton-shimmer::after {
+    content: '';
+    @apply absolute inset-0;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      hsl(var(--background) / 0.4),
+      transparent
+    );
+    animation: shimmer 1.5s infinite;
+  }
+
+  @keyframes shimmer {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
+  /* Animación de entrada */
+  .fade-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Safe area para dispositivos con notch */
+  .safe-area-inset-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .safe-area-inset-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Page container con espacio para bottom nav */
+  .page-container {
+    @apply min-h-screen pb-20;
+  }
+
+  /* Alert badge */
+  .alert-badge {
+    @apply absolute -top-1 -right-1 min-w-[18px] h-[18px] 
+           flex items-center justify-center
+           bg-destructive text-destructive-foreground 
+           text-[10px] font-bold rounded-full;
+  }
+}
+
+@layer utilities {
+  /* Touch optimization */
+  .touch-manipulation {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Gradient backgrounds */
+  .gradient-primary {
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(217 91% 50%) 100%);
+  }
+
+  .gradient-accent {
+    background: linear-gradient(135deg, hsl(var(--accent)) 0%, hsl(25 95% 60%) 100%);
+  }
+
+  /* Text gradient */
+  .text-gradient {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%);
+  }
+}
