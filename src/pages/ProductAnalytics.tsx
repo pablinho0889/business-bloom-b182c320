@@ -8,9 +8,12 @@ import BottomNav from '@/components/layout/BottomNav';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { TrendingUp, TrendingDown, Package, DollarSign, AlertTriangle, BarChart3, Download, Loader2 } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { TrendingUp, TrendingDown, Package, DollarSign, AlertTriangle, BarChart3, Download, Loader2, Calendar } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
+
+type TimePeriod = 'week' | 'month' | 'year' | 'all';
 
 interface ProductSalesData {
   productId: string;
@@ -28,12 +31,64 @@ export default function ProductAnalytics() {
   const { products } = useProducts();
   const { sales } = useSales();
   const [isExporting, setIsExporting] = useState(false);
+  const [timePeriod, setTimePeriod] = useState<TimePeriod>('all');
 
   if (!user) return <Navigate to="/auth" replace />;
   if (!currentBusiness) return <Navigate to="/" replace />;
   if (!isOwner) return <Navigate to="/" replace />;
 
-  // Calcular datos de ventas por producto
+  // Función para obtener la fecha de inicio según el período
+  const getStartDate = (period: TimePeriod): Date | null => {
+    const now = new Date();
+    
+    switch (period) {
+      case 'week':
+        const weekStart = new Date(now);
+        weekStart.setDate(now.getDate() - 7);
+        return weekStart;
+      
+      case 'month':
+        const monthStart = new Date(now);
+        monthStart.setMonth(now.getMonth() - 1);
+        return monthStart;
+      
+      case 'year':
+        const yearStart = new Date(now);
+        yearStart.setFullYear(now.getFullYear() - 1);
+        return yearStart;
+      
+      case 'all':
+      default:
+        return null; // Sin filtro
+    }
+  };
+
+  // Filtrar ventas según el período seleccionado
+  const filteredSales = useMemo(() => {
+    const startDate = getStartDate(timePeriod);
+    
+    if (!startDate) {
+      return sales; // Todas las ventas
+    }
+    
+    return sales.filter(sale => {
+      const saleDate = new Date(sale.created_at);
+      return saleDate >= startDate;
+    });
+  }, [sales, timePeriod]);
+
+  // Obtener nombre del período para mostrar
+  const getPeriodLabel = () => {
+    switch (timePeriod) {
+      case 'week': return 'Última Semana';
+      case 'month': return 'Último Mes';
+      case 'year': return 'Último Año';
+      case 'all': return 'Todo el Tiempo';
+      default: return 'Todo el Tiempo';
+    }
+  };
+
+  // Calcular datos de ventas por producto (usando ventas filtradas)
   const productSalesData = useMemo(() => {
     const salesByProduct = new Map<string, ProductSalesData>();
 
@@ -48,8 +103,8 @@ export default function ProductAnalytics() {
       });
     });
 
-    // Procesar todas las ventas
-    sales.forEach(sale => {
+    // Procesar ventas filtradas
+    filteredSales.forEach(sale => {
       sale.items?.forEach(item => {
         const existing = salesByProduct.get(item.product_id);
         if (existing) {
@@ -77,7 +132,7 @@ export default function ProductAnalytics() {
     });
 
     return Array.from(salesByProduct.values());
-  }, [products, sales]);
+  }, [products, filteredSales]);
 
   // Top 10 productos más vendidos
   const topSellingProducts = useMemo(() => {
@@ -151,6 +206,9 @@ export default function ProductAnalytics() {
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
       doc.text(currentBusiness?.name || '', pageWidth / 2, yPosition, { align: 'center' });
+      
+      yPosition += 3;
+      doc.text(`Período: ${getPeriodLabel()}`, pageWidth / 2, yPosition, { align: 'center' });
       
       yPosition += 3;
       doc.text(new Date().toLocaleDateString('es-ES', { 
@@ -303,29 +361,25 @@ export default function ProductAnalytics() {
     <div className="page-container">
       <AppHeader title="Análisis de Productos" showBack />
       
-      {/* Botón de exportar PDF */}
-      <div className="px-4 pt-4">
-        <Button 
-          onClick={exportToPDF} 
-          disabled={isExporting}
-          className="w-full"
-          size="lg"
-        >
-          {isExporting ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Generando PDF...
-            </>
-          ) : (
-            <>
-              <Download className="h-4 w-4 mr-2" />
-              Exportar a PDF
-            </>
-          )}
-        </Button>
-      </div>
-      
       <main className="p-4 space-y-4">
+        {/* Filtros de tiempo */}
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium">Período de análisis</span>
+            </div>
+            <Tabs value={timePeriod} onValueChange={(v) => setTimePeriod(v as TimePeriod)}>
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="week" className="text-xs">Semana</TabsTrigger>
+                <TabsTrigger value="month" className="text-xs">Mes</TabsTrigger>
+                <TabsTrigger value="year" className="text-xs">Año</TabsTrigger>
+                <TabsTrigger value="all" className="text-xs">Todo</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </CardContent>
+        </Card>
+        
         {/* Métricas principales */}
         <div className="grid grid-cols-2 gap-3">
           <Card>
@@ -413,7 +467,7 @@ export default function ProductAnalytics() {
           <CardHeader className="pb-3">
             <CardTitle className="text-sm flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-green-600" />
-              Top 10 Más Vendidos
+              Top 10 Más Vendidos - {getPeriodLabel()}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -525,6 +579,26 @@ export default function ProductAnalytics() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Botón de exportar PDF al final */}
+        <Button 
+          onClick={exportToPDF} 
+          disabled={isExporting}
+          className="w-full"
+          size="lg"
+        >
+          {isExporting ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Generando PDF...
+            </>
+          ) : (
+            <>
+              <Download className="h-4 w-4 mr-2" />
+              Exportar a PDF
+            </>
+          )}
+        </Button>
       </main>
 
       <BottomNav />
