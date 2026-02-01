@@ -14,6 +14,7 @@ import Inventory from "./pages/Inventory";
 import Alerts from "./pages/Alerts";
 import Settings from "./pages/Settings";
 import Team from "./pages/Team";
+import ProductAnalytics from "./pages/ProductAnalytics";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
               <Route path="/sales" element={<Sales />} />
               <Route path="/sales-report" element={<SalesReport />} />
               <Route path="/inventory" element={<Inventory />} />
+              <Route path="/products-analytics" element={<ProductAnalytics />} />
               <Route path="/alerts" element={<Alerts />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/team" element={<Team />} />

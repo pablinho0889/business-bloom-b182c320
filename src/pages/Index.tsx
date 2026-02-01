@@ -90,11 +90,17 @@ export default function Index() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card 
+            className="cursor-pointer hover:shadow-md transition-shadow active:scale-[0.98]"
+            onClick={() => navigate('/products-analytics')}
+          >
             <CardContent className="p-4">
-              <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                <Package className="h-4 w-4" />
-                <span className="text-xs">Productos</span>
+              <div className="flex items-center justify-between text-muted-foreground mb-1">
+                <div className="flex items-center gap-2">
+                  <Package className="h-4 w-4" />
+                  <span className="text-xs">Productos</span>
+                </div>
+                <ChevronRight className="h-4 w-4" />
               </div>
               <p className="text-2xl font-bold">{activeProducts.length}</p>
               <p className="text-xs text-muted-foreground">{products.length} total</p>
