@@ -212,17 +212,17 @@ export default function Sales() {
               <RadioGroup value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as PaymentMethod)}>
                 <div className="grid grid-cols-3 gap-2">
                   <Label className="flex flex-col items-center gap-2 border rounded-lg p-3 cursor-pointer has-[:checked]:border-primary has-[:checked]:bg-primary/5 text-center">
-                    <RadioGroupItem value="cash" className="sr-only" />
+                    <RadioGroupItem value="cash" />
                     <Banknote className="h-5 w-5" />
                     <span className="text-xs">Efectivo</span>
                   </Label>
                   <Label className="flex flex-col items-center gap-2 border rounded-lg p-3 cursor-pointer has-[:checked]:border-primary has-[:checked]:bg-primary/5 text-center">
-                    <RadioGroupItem value="transfer" className="sr-only" />
+                    <RadioGroupItem value="transfer" />
                     <Smartphone className="h-5 w-5" />
                     <span className="text-xs">Transfer</span>
                   </Label>
                   <Label className="flex flex-col items-center gap-2 border rounded-lg p-3 cursor-pointer has-[:checked]:border-primary has-[:checked]:bg-primary/5 text-center">
-                    <RadioGroupItem value="card" className="sr-only" />
+                    <RadioGroupItem value="card" />
                     <CreditCard className="h-5 w-5" />
                     <span className="text-xs">Tarjeta</span>
                   </Label>
@@ -236,12 +236,12 @@ export default function Sales() {
             </div>
           </div>
 
-          <DialogFooter className="flex-col sm:flex-row gap-2">
-            <Button variant="outline" onClick={() => setShowCheckout(false)} disabled={loadingPayment} className="w-full sm:w-auto">
-              Cancelar
-            </Button>
-            <Button onClick={handleCheckout} disabled={loadingPayment} className="w-full sm:w-auto">
+          <DialogFooter className="flex-col gap-2">
+            <Button onClick={handleCheckout} disabled={loadingPayment} className="w-full">
               {loadingPayment ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Confirmar Venta'}
+            </Button>
+            <Button variant="outline" onClick={() => setShowCheckout(false)} disabled={loadingPayment} className="w-full">
+              Cancelar
             </Button>
           </DialogFooter>
         </DialogContent>
