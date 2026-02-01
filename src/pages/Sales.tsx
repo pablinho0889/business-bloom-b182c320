@@ -180,23 +180,23 @@ export default function Sales() {
       </main>
 
       <Dialog open={showCheckout} onOpenChange={setShowCheckout}>
-        <DialogContent>
+        <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Confirmar Venta</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4">
             {cart.map(item => (
-              <div key={item.productId} className="flex items-center justify-between">
-                <div className="flex-1">
-                  <p className="font-medium">{item.productName}</p>
+              <div key={item.productId} className="flex items-center justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium truncate">{item.productName}</p>
                   <p className="text-sm text-muted-foreground">${item.unitPrice.toFixed(2)} c/u</p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 flex-shrink-0">
                   <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => updateQuantity(item.productId, -1)}>
                     <Minus className="h-4 w-4" />
                   </Button>
-                  <span className="w-8 text-center">{item.quantity}</span>
+                  <span className="w-8 text-center text-sm">{item.quantity}</span>
                   <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => updateQuantity(item.productId, 1)}>
                     <Plus className="h-4 w-4" />
                   </Button>
@@ -208,23 +208,23 @@ export default function Sales() {
             ))}
 
             <div className="border-t pt-4">
-              <Label className="mb-3 block">Método de pago</Label>
+              <Label className="mb-3 block text-sm font-medium">Método de pago</Label>
               <RadioGroup value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as PaymentMethod)}>
-                <div className="flex gap-2">
-                  <Label className="flex-1 flex items-center gap-2 border rounded-lg p-3 cursor-pointer has-[:checked]:border-primary has-[:checked]:bg-primary/5">
-                    <RadioGroupItem value="cash" />
-                    <Banknote className="h-4 w-4" />
-                    Efectivo
+                <div className="grid grid-cols-3 gap-2">
+                  <Label className="flex flex-col items-center gap-2 border rounded-lg p-3 cursor-pointer has-[:checked]:border-primary has-[:checked]:bg-primary/5 text-center">
+                    <RadioGroupItem value="cash" className="sr-only" />
+                    <Banknote className="h-5 w-5" />
+                    <span className="text-xs">Efectivo</span>
                   </Label>
-                  <Label className="flex-1 flex items-center gap-2 border rounded-lg p-3 cursor-pointer has-[:checked]:border-primary has-[:checked]:bg-primary/5">
-                    <RadioGroupItem value="transfer" />
-                    <Smartphone className="h-4 w-4" />
-                    Transfer
+                  <Label className="flex flex-col items-center gap-2 border rounded-lg p-3 cursor-pointer has-[:checked]:border-primary has-[:checked]:bg-primary/5 text-center">
+                    <RadioGroupItem value="transfer" className="sr-only" />
+                    <Smartphone className="h-5 w-5" />
+                    <span className="text-xs">Transfer</span>
                   </Label>
-                  <Label className="flex-1 flex items-center gap-2 border rounded-lg p-3 cursor-pointer has-[:checked]:border-primary has-[:checked]:bg-primary/5">
-                    <RadioGroupItem value="card" />
-                    <CreditCard className="h-4 w-4" />
-                    Tarjeta
+                  <Label className="flex flex-col items-center gap-2 border rounded-lg p-3 cursor-pointer has-[:checked]:border-primary has-[:checked]:bg-primary/5 text-center">
+                    <RadioGroupItem value="card" className="sr-only" />
+                    <CreditCard className="h-5 w-5" />
+                    <span className="text-xs">Tarjeta</span>
                   </Label>
                 </div>
               </RadioGroup>
@@ -236,11 +236,11 @@ export default function Sales() {
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCheckout(false)} disabled={loadingPayment}>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setShowCheckout(false)} disabled={loadingPayment} className="w-full sm:w-auto">
               Cancelar
             </Button>
-            <Button onClick={handleCheckout} disabled={loadingPayment}>
+            <Button onClick={handleCheckout} disabled={loadingPayment} className="w-full sm:w-auto">
               {loadingPayment ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Confirmar Venta'}
             </Button>
           </DialogFooter>
