@@ -60,11 +60,11 @@ export default function Auth() {
     <div className="min-h-screen flex items-center justify-center p-4 bg-background">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 h-14 w-14 rounded-xl gradient-primary flex items-center justify-center">
+          <div className="mx-auto mb-4 h-14 w-14 rounded-xl flex items-center justify-center">
             <img
               src="/icon-512.png"
               alt="Logo"
-              className="h-7 w-7 object-contain"
+              className="h-14 w-14 object-cover"
             />
           </div>
           <CardTitle className="text-2xl">Mi Puntico</CardTitle>
