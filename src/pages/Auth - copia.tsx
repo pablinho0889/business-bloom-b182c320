@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2 } from 'lucide-react';
+import { Store, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function Auth() {
@@ -61,16 +61,11 @@ export default function Auth() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 h-14 w-14 rounded-xl gradient-primary flex items-center justify-center">
-            <img
-              src="/icon-512.png"
-              alt="Logo"
-              className="h-7 w-7 object-contain"
-            />
+            <Store className="h-7 w-7 text-primary-foreground" />
           </div>
           <CardTitle className="text-2xl">Mi Puntico</CardTitle>
           <CardDescription>Tu negocio, bajo control</CardDescription>
         </CardHeader>
-
         <CardContent>
           <Tabs defaultValue="login">
             <TabsList className="grid w-full grid-cols-2">
@@ -113,7 +108,6 @@ export default function Auth() {
                 </Button>
               </form>
             </TabsContent>
-
           </Tabs>
         </CardContent>
       </Card>
