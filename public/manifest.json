@@ -4,7 +4,7 @@
   "description": "Sistema completo de punto de venta con gestión de inventario y ventas. Funciona offline.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
+  "background_color": "#1e3a8a",
   "theme_color": "#1e3a8a",
   "orientation": "portrait-primary",
   "icons": [
