@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { Navigate, useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { useSales, SaleWithItems } from '@/hooks/useSales';
@@ -7,75 +7,58 @@ import AppHeader from '@/components/layout/AppHeader';
 import BottomNav from '@/components/layout/BottomNav';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { ArrowLeft, FileDown, Loader2, Banknote, CreditCard, Smartphone, Clock, Calendar } from 'lucide-react';
+import { ArrowLeft, FileDown, Loader2, Banknote, CreditCard, Smartphone, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { generateSalesReportPDF } from '@/lib/pdf-generator';
 
 type PaymentMethodFilter = 'all' | 'cash' | 'card' | 'transfer';
-type TimePeriod = 'week' | 'month' | 'year' | 'all';
 
 export default function SalesReport() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { currentBusiness, isOwner } = useBusiness();
   const { sales, isLoading } = useSales();
+  const [searchParams] = useSearchParams();
   
-  const [timePeriod, setTimePeriod] = useState<TimePeriod>('week');
+  const period = searchParams.get('period') || 'today';
   const [paymentFilter, setPaymentFilter] = useState<PaymentMethodFilter>('all');
-
-  // Función para obtener la fecha de inicio según el período
-  const getStartDate = (period: TimePeriod): Date | null => {
-    const now = new Date();
-    
-    switch (period) {
-      case 'week':
-        const weekStart = new Date(now);
-        weekStart.setDate(now.getDate() - 7);
-        weekStart.setHours(0, 0, 0, 0);
-        return weekStart;
-      
-      case 'month':
-        const monthStart = new Date(now);
-        monthStart.setMonth(now.getMonth() - 1);
-        monthStart.setHours(0, 0, 0, 0);
-        return monthStart;
-      
-      case 'year':
-        const yearStart = new Date(now);
-        yearStart.setFullYear(now.getFullYear() - 1);
-        yearStart.setHours(0, 0, 0, 0);
-        return yearStart;
-      
-      case 'all':
-      default:
-        return null; // Sin filtro de fecha
-    }
-  };
+  const [sortBy, setSortBy] = useState<'time' | 'amount'>('time');
 
   // Filter sales by period
   const filteredSales = useMemo(() => {
     if (!currentBusiness) return [];
     
-    const startDate = getStartDate(timePeriod);
-    
-    // Filtrar por fecha si hay período seleccionado
-    let result = startDate 
-      ? sales.filter(sale => new Date(sale.created_at) >= startDate)
-      : sales;
+    const now = new Date();
+    let startDate: Date;
+
+    if (period === 'week') {
+      startDate = new Date();
+      startDate.setDate(startDate.getDate() - startDate.getDay());
+      startDate.setHours(0, 0, 0, 0);
+    } else {
+      startDate = new Date();
+      startDate.setHours(0, 0, 0, 0);
+    }
+
+    let result = sales.filter(sale => new Date(sale.created_at) >= startDate);
 
     // Payment method filter
     if (paymentFilter !== 'all') {
       result = result.filter(sale => sale.payment_method === paymentFilter);
     }
 
-    // Ordenar por tiempo (más reciente primero)
-    result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    // Sort
+    if (sortBy === 'time') {
+      result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    } else {
+      result.sort((a, b) => Number(b.total) - Number(a.total));
+    }
 
     return result;
-  }, [sales, timePeriod, paymentFilter, currentBusiness]);
+  }, [sales, period, paymentFilter, sortBy, currentBusiness]);
 
   // Calculate totals
   const totals = useMemo(() => {
@@ -96,31 +79,13 @@ export default function SalesReport() {
   if (!user) return <Navigate to="/auth" replace />;
   if (!currentBusiness) return <Navigate to="/" replace />;
 
-  // Obtener título según el período
-  const getPeriodTitle = () => {
-    switch (timePeriod) {
-      case 'week': return 'Ventas de la Semana';
-      case 'month': return 'Ventas del Mes';
-      case 'year': return 'Ventas del Año';
-      case 'all': return 'Historial de Ventas';
-      default: return 'Ventas';
-    }
-  };
-
   const getDateRange = () => {
-    const startDate = getStartDate(timePeriod);
-    const now = new Date();
-    
-    if (!startDate) {
-      // Para "Todo", mostrar desde la venta más antigua
-      if (filteredSales.length > 0) {
-        const oldestSale = filteredSales[filteredSales.length - 1];
-        return `${format(new Date(oldestSale.created_at), "d 'De' MMMM", { locale: es })} - ${format(now, "d 'De' MMMM, yyyy", { locale: es })}`;
-      }
-      return 'Sin ventas registradas';
+    if (period === 'week') {
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - startDate.getDay());
+      return `${format(startDate, "d 'de' MMMM", { locale: es })} - ${format(new Date(), "d 'de' MMMM, yyyy", { locale: es })}`;
     }
-    
-    return `${format(startDate, "d 'De' MMMM", { locale: es })} - ${format(now, "d 'De' MMMM, yyyy", { locale: es })}`;
+    return format(new Date(), "EEEE, d 'de' MMMM 'de' yyyy", { locale: es });
   };
 
   const getPaymentIcon = (method: string) => {
@@ -133,16 +98,9 @@ export default function SalesReport() {
   };
 
   const handleExportPDF = () => {
-    const periodMap = {
-      week: 'weekly' as const,
-      month: 'monthly' as const,
-      year: 'yearly' as const,
-      all: 'all-time' as const,
-    };
-    
     generateSalesReportPDF({
       businessName: currentBusiness.name,
-      period: periodMap[timePeriod],
+      period: period === 'week' ? 'weekly' : 'daily',
       dateRange: getDateRange(),
       sales: filteredSales,
       totals,
@@ -151,7 +109,7 @@ export default function SalesReport() {
 
   return (
     <div className="page-container">
-      <AppHeader title={getPeriodTitle()} />
+      <AppHeader title={period === 'week' ? 'Ventas de la semana' : 'Ventas del día'} />
       
       <main className="p-4 space-y-4 pb-24">
         {/* Back button and title */}
@@ -160,46 +118,36 @@ export default function SalesReport() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h2 className="text-lg font-bold">{getPeriodTitle()}</h2>
+            <h2 className="text-lg font-bold">
+              {period === 'week' ? 'Ventas de la semana' : 'Ventas del día'}
+            </h2>
             <p className="text-sm text-muted-foreground capitalize">{getDateRange()}</p>
           </div>
         </div>
 
-        {/* Selector de período */}
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">Período de análisis</span>
-            </div>
-            <Tabs value={timePeriod} onValueChange={(v) => setTimePeriod(v as TimePeriod)}>
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="week" className="text-xs">Semana</TabsTrigger>
-                <TabsTrigger value="month" className="text-xs">Mes</TabsTrigger>
-                <TabsTrigger value="year" className="text-xs">Año</TabsTrigger>
-                <TabsTrigger value="all" className="text-xs">Todo</TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </CardContent>
-        </Card>
-
-        {/* Filtro de método de pago (solo este, sin el de hora) */}
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <CreditCard className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">Filtrar por método de pago</span>
-            </div>
-            <Tabs value={paymentFilter} onValueChange={(v) => setPaymentFilter(v as PaymentMethodFilter)}>
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="all" className="text-xs">Todos</TabsTrigger>
-                <TabsTrigger value="cash" className="text-xs">Efectivo</TabsTrigger>
-                <TabsTrigger value="card" className="text-xs">Tarjeta</TabsTrigger>
-                <TabsTrigger value="transfer" className="text-xs">Transfer</TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </CardContent>
-        </Card>
+        {/* Filters */}
+        <div className="flex gap-2">
+          <Select value={paymentFilter} onValueChange={(v) => setPaymentFilter(v as PaymentMethodFilter)}>
+            <SelectTrigger className="flex-1">
+              <SelectValue placeholder="Método de pago" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos los métodos</SelectItem>
+              <SelectItem value="cash">Efectivo</SelectItem>
+              <SelectItem value="card">Tarjeta</SelectItem>
+              <SelectItem value="transfer">Transferencia</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={sortBy} onValueChange={(v) => setSortBy(v as 'time' | 'amount')}>
+            <SelectTrigger className="flex-1">
+              <SelectValue placeholder="Ordenar por" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="time">Por hora</SelectItem>
+              <SelectItem value="amount">Por monto</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
         {/* Summary Cards */}
         <div className="grid grid-cols-2 gap-3">
