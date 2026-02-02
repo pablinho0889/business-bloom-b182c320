@@ -1,5 +1,5 @@
-import { useMemo, useState, useEffect } from 'react';
-import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
+import { useMemo, useState } from 'react';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { useSales, SaleWithItems } from '@/hooks/useSales';
@@ -15,37 +15,22 @@ import { es } from 'date-fns/locale';
 import { generateSalesReportPDF } from '@/lib/pdf-generator';
 
 type PaymentMethodFilter = 'all' | 'cash' | 'card' | 'transfer';
-type TimePeriod = 'today' | 'week' | 'month' | 'year' | 'all';
+type TimePeriod = 'week' | 'month' | 'year' | 'all';
 
 export default function SalesReport() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { currentBusiness, isOwner } = useBusiness();
   const { sales, isLoading } = useSales();
-  const [searchParams] = useSearchParams();
   
-  // Obtener período del URL o usar 'week' por defecto
-  const urlPeriod = searchParams.get('period') as TimePeriod | null;
-  const [timePeriod, setTimePeriod] = useState<TimePeriod>(urlPeriod || 'week');
+  const [timePeriod, setTimePeriod] = useState<TimePeriod>('week');
   const [paymentFilter, setPaymentFilter] = useState<PaymentMethodFilter>('all');
-
-  // Actualizar período si cambia el URL
-  useEffect(() => {
-    if (urlPeriod && urlPeriod !== timePeriod) {
-      setTimePeriod(urlPeriod);
-    }
-  }, [urlPeriod]);
 
   // Función para obtener la fecha de inicio según el período
   const getStartDate = (period: TimePeriod): Date | null => {
     const now = new Date();
     
     switch (period) {
-      case 'today':
-        const todayStart = new Date(now);
-        todayStart.setHours(0, 0, 0, 0);
-        return todayStart;
-      
       case 'week':
         const weekStart = new Date(now);
         weekStart.setDate(now.getDate() - 7);
@@ -114,7 +99,6 @@ export default function SalesReport() {
   // Obtener título según el período
   const getPeriodTitle = () => {
     switch (timePeriod) {
-      case 'today': return 'Ventas de Hoy';
       case 'week': return 'Ventas de la Semana';
       case 'month': return 'Ventas del Mes';
       case 'year': return 'Ventas del Año';
@@ -126,10 +110,6 @@ export default function SalesReport() {
   const getDateRange = () => {
     const startDate = getStartDate(timePeriod);
     const now = new Date();
-    
-    if (timePeriod === 'today') {
-      return format(now, "EEEE, d 'de' MMMM 'de' yyyy", { locale: es });
-    }
     
     if (!startDate) {
       // Para "Todo", mostrar desde la venta más antigua
@@ -154,7 +134,6 @@ export default function SalesReport() {
 
   const handleExportPDF = () => {
     const periodMap = {
-      today: 'daily' as const,
       week: 'weekly' as const,
       month: 'monthly' as const,
       year: 'yearly' as const,
@@ -194,8 +173,7 @@ export default function SalesReport() {
               <span className="text-sm font-medium">Período de análisis</span>
             </div>
             <Tabs value={timePeriod} onValueChange={(v) => setTimePeriod(v as TimePeriod)}>
-              <TabsList className="grid w-full grid-cols-5">
-                <TabsTrigger value="today" className="text-xs">Hoy</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="week" className="text-xs">Semana</TabsTrigger>
                 <TabsTrigger value="month" className="text-xs">Mes</TabsTrigger>
                 <TabsTrigger value="year" className="text-xs">Año</TabsTrigger>
