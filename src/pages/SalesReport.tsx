@@ -2,33 +2,69 @@ import { useMemo, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBusiness } from '@/contexts/BusinessContext';
-import { useSales } from '@/hooks/useSales';
+import { useSales, SaleWithItems } from '@/hooks/useSales';
 import AppHeader from '@/components/layout/AppHeader';
 import BottomNav from '@/components/layout/BottomNav';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { ArrowLeft, FileDown, Loader2, Banknote, CreditCard, Smartphone, Clock } from 'lucide-react';
+import { ArrowLeft, FileDown, Loader2, Banknote, CreditCard, Smartphone, Clock, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { generateSalesReportPDF } from '@/lib/pdf-generator';
 
 type PaymentMethodFilter = 'all' | 'cash' | 'card' | 'transfer';
+type TimePeriod = 'week' | 'month' | 'year' | 'all';
 
 export default function SalesReport() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { currentBusiness, isOwner } = useBusiness();
-  const { todaySales, isLoading } = useSales(); // Usar todaySales directamente
+  const { sales, isLoading } = useSales();
   
+  const [timePeriod, setTimePeriod] = useState<TimePeriod>('week');
   const [paymentFilter, setPaymentFilter] = useState<PaymentMethodFilter>('all');
 
-  // Filter TODAY's sales by payment method only
+  // Función para obtener la fecha de inicio según el período
+  const getStartDate = (period: TimePeriod): Date | null => {
+    const now = new Date();
+    
+    switch (period) {
+      case 'week':
+        const weekStart = new Date(now);
+        weekStart.setDate(now.getDate() - 7);
+        weekStart.setHours(0, 0, 0, 0);
+        return weekStart;
+      
+      case 'month':
+        const monthStart = new Date(now);
+        monthStart.setMonth(now.getMonth() - 1);
+        monthStart.setHours(0, 0, 0, 0);
+        return monthStart;
+      
+      case 'year':
+        const yearStart = new Date(now);
+        yearStart.setFullYear(now.getFullYear() - 1);
+        yearStart.setHours(0, 0, 0, 0);
+        return yearStart;
+      
+      case 'all':
+      default:
+        return null; // Sin filtro de fecha
+    }
+  };
+
+  // Filter sales by period
   const filteredSales = useMemo(() => {
     if (!currentBusiness) return [];
     
-    let result = todaySales; // Ya filtrado por hoy
+    const startDate = getStartDate(timePeriod);
+    
+    // Filtrar por fecha si hay período seleccionado
+    let result = startDate 
+      ? sales.filter(sale => new Date(sale.created_at) >= startDate)
+      : sales;
 
     // Payment method filter
     if (paymentFilter !== 'all') {
@@ -39,9 +75,9 @@ export default function SalesReport() {
     result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
     return result;
-  }, [todaySales, paymentFilter, currentBusiness]);
+  }, [sales, timePeriod, paymentFilter, currentBusiness]);
 
-  // Calculate totals (solo de hoy)
+  // Calculate totals
   const totals = useMemo(() => {
     const totalAmount = filteredSales.reduce((sum, sale) => sum + Number(sale.total), 0);
     const totalProducts = filteredSales.reduce((sum, sale) => 
@@ -60,9 +96,31 @@ export default function SalesReport() {
   if (!user) return <Navigate to="/auth" replace />;
   if (!currentBusiness) return <Navigate to="/" replace />;
 
-  const getTodayDate = () => {
+  // Obtener título según el período
+  const getPeriodTitle = () => {
+    switch (timePeriod) {
+      case 'week': return 'Ventas de la Semana';
+      case 'month': return 'Ventas del Mes';
+      case 'year': return 'Ventas del Año';
+      case 'all': return 'Historial de Ventas';
+      default: return 'Ventas';
+    }
+  };
+
+  const getDateRange = () => {
+    const startDate = getStartDate(timePeriod);
     const now = new Date();
-    return format(now, "EEEE, d 'de' MMMM 'de' yyyy", { locale: es });
+    
+    if (!startDate) {
+      // Para "Todo", mostrar desde la venta más antigua
+      if (filteredSales.length > 0) {
+        const oldestSale = filteredSales[filteredSales.length - 1];
+        return `${format(new Date(oldestSale.created_at), "d 'De' MMMM", { locale: es })} - ${format(now, "d 'De' MMMM, yyyy", { locale: es })}`;
+      }
+      return 'Sin ventas registradas';
+    }
+    
+    return `${format(startDate, "d 'De' MMMM", { locale: es })} - ${format(now, "d 'De' MMMM, yyyy", { locale: es })}`;
   };
 
   const getPaymentIcon = (method: string) => {
@@ -75,10 +133,17 @@ export default function SalesReport() {
   };
 
   const handleExportPDF = () => {
+    const periodMap = {
+      week: 'weekly' as const,
+      month: 'monthly' as const,
+      year: 'yearly' as const,
+      all: 'all-time' as const,
+    };
+    
     generateSalesReportPDF({
       businessName: currentBusiness.name,
-      period: 'daily' as const,
-      dateRange: getTodayDate(),
+      period: periodMap[timePeriod],
+      dateRange: getDateRange(),
       sales: filteredSales,
       totals,
     });
@@ -86,7 +151,7 @@ export default function SalesReport() {
 
   return (
     <div className="page-container">
-      <AppHeader title="Ventas de Hoy" />
+      <AppHeader title={getPeriodTitle()} />
       
       <main className="p-4 space-y-4 pb-24">
         {/* Back button and title */}
@@ -95,12 +160,30 @@ export default function SalesReport() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h2 className="text-lg font-bold">Ventas de Hoy</h2>
-            <p className="text-sm text-muted-foreground capitalize">{getTodayDate()}</p>
+            <h2 className="text-lg font-bold">{getPeriodTitle()}</h2>
+            <p className="text-sm text-muted-foreground capitalize">{getDateRange()}</p>
           </div>
         </div>
 
-        {/* Filtro de método de pago */}
+        {/* Selector de período */}
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium">Período de análisis</span>
+            </div>
+            <Tabs value={timePeriod} onValueChange={(v) => setTimePeriod(v as TimePeriod)}>
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="week" className="text-xs">Semana</TabsTrigger>
+                <TabsTrigger value="month" className="text-xs">Mes</TabsTrigger>
+                <TabsTrigger value="year" className="text-xs">Año</TabsTrigger>
+                <TabsTrigger value="all" className="text-xs">Todo</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </CardContent>
+        </Card>
+
+        {/* Filtro de método de pago (solo este, sin el de hora) */}
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-3">
@@ -122,7 +205,7 @@ export default function SalesReport() {
         <div className="grid grid-cols-2 gap-3">
           <Card>
             <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground">Total vendido hoy</p>
+              <p className="text-xs text-muted-foreground">Total vendido</p>
               <p className="text-2xl font-bold">${totals.totalAmount.toFixed(2)}</p>
             </CardContent>
           </Card>
@@ -175,12 +258,7 @@ export default function SalesReport() {
           ) : filteredSales.length === 0 ? (
             <Card>
               <CardContent className="p-8 text-center text-muted-foreground">
-                No hay ventas hoy
-                {paymentFilter !== 'all' && (
-                  <p className="text-xs mt-2">
-                    Intenta cambiar el filtro de método de pago
-                  </p>
-                )}
+                No hay ventas para este período
               </CardContent>
             </Card>
           ) : (
