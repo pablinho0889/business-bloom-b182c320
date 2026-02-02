@@ -79,7 +79,7 @@ export default function Index() {
               <div className="flex items-center justify-between text-muted-foreground mb-1">
                 <div className="flex items-center gap-2">
                   <TrendingUp className="h-4 w-4" />
-                  <span className="text-xs">Esta semana</span>
+                  <span className="text-xs">Utilidad Neta</span>
                 </div>
                 <ChevronRight className="h-4 w-4" />
               </div>
