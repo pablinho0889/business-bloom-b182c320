@@ -33,7 +33,8 @@ export default function ProductDetailModal({
 }: ProductDetailModalProps) {
   const productMovements = useMemo(() => {
     if (!product) return [];
-    return movements.filter((m) => m.id === product.id);
+    // Filtrar movimientos por product_id, no por id del producto
+    return movements.filter((m: any) => m.product_id === product.id);
   }, [product, movements]);
 
   const chartData = useMemo(() => {

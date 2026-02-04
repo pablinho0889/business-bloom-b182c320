@@ -207,22 +207,16 @@ export default function Inventory() {
                         return true;
                       })
                       .map(product => (
-                        <div
+                        <ProductCard
                           key={product.id}
-                          onClick={() => setDetailProduct(product)}
-                          className="cursor-pointer"
-                        >
-                          <ProductCard
-                            product={product}
-                            isOwner={isOwner}
-                            isWarehouse={isWarehouse}
-                            onAdjustStock={() => {
-                              setSelectedProduct(product);
-                            }}
-                            onEdit={() => handleEdit(product)}
-                            onDelete={() => handleDelete(product)}
-                          />
-                        </div>
+                          product={product}
+                          isOwner={isOwner}
+                          isWarehouse={isWarehouse}
+                          onAdjustStock={() => setSelectedProduct(product)}
+                          onEdit={() => handleEdit(product)}
+                          onDelete={() => handleDelete(product)}
+                          onViewDetail={() => setDetailProduct(product)}
+                        />
                       ))
                   )}
                 </TabsContent>

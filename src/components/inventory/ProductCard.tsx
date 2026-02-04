@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Package, Pencil, Trash2 } from 'lucide-react';
+import { Package, Pencil, Trash2, Eye } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -12,6 +12,7 @@ interface ProductCardProps {
   onAdjustStock: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  onViewDetail?: () => void;
 }
 
 export default function ProductCard({
@@ -21,6 +22,7 @@ export default function ProductCard({
   onAdjustStock,
   onEdit,
   onDelete,
+  onViewDetail,
 }: ProductCardProps) {
   const [showActions, setShowActions] = useState(false);
 
@@ -89,6 +91,18 @@ export default function ProductCard({
                 <span className={`stock-badge stock-${product.stockStatus}`}>
                   {product.stock}
                 </span>
+                {onViewDetail && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onViewDetail();
+                    }}
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                )}
                 {(isOwner || isWarehouse) && (
                   <Button
                     size="sm"
