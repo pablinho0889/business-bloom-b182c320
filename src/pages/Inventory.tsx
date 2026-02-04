@@ -9,19 +9,23 @@ import BottomNav from '@/components/layout/BottomNav';
 import ProductCard from '@/components/inventory/ProductCard';
 import ProductForm, { ProductFormValues } from '@/components/inventory/ProductForm';
 import DeleteProductDialog from '@/components/inventory/DeleteProductDialog';
+import InventoryStats from '@/components/inventory/InventoryStats';
+import MovementTimeline from '@/components/inventory/MovementTimeline';
+import ProductDetailModal from '@/components/inventory/ProductDetailModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Minus, Loader2 } from 'lucide-react';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Plus, Minus, Loader2, BarChart3, Package } from 'lucide-react';
 import { useSales } from '@/hooks/useSales';
 
 export default function Inventory() {
   const { user } = useAuth();
   const { currentBusiness, isOwner, isWarehouse } = useBusiness();
   const { products, isLoading, createProduct, updateProduct, deleteProduct } = useProducts();
-  const { createMovement } = useInventory();
+  const { movements, createMovement } = useInventory();
   const { sales } = useSales();
   
   // Product form state
@@ -37,7 +41,11 @@ export default function Inventory() {
   const [movementQty, setMovementQty] = useState(1);
   const [movementType, setMovementType] = useState<'entry' | 'exit'>('entry');
   
+  // Product detail modal
+  const [detailProduct, setDetailProduct] = useState<ProductWithStatus | null>(null);
+  
   const [search, setSearch] = useState('');
+  const [activeView, setActiveView] = useState<'list' | 'stats'>('list');
 
   if (!user) return <Navigate to="/auth" replace />;
   if (!currentBusiness) return <Navigate to="/" replace />;
@@ -128,55 +136,108 @@ export default function Inventory() {
       <AppHeader title="Inventario" />
       
       <main className="p-4 space-y-4">
+        {/* View Toggle */}
         <div className="flex gap-2">
-          <Input
-            placeholder="Buscar..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+          <Button
+            variant={activeView === 'list' ? 'default' : 'outline'}
+            onClick={() => setActiveView('list')}
             className="flex-1"
-          />
-          {isOwner && (
-            <Button onClick={openAddProduct}>
-              <Plus className="h-4 w-4" />
-            </Button>
-          )}
+          >
+            <Package className="h-4 w-4 mr-2" />
+            Productos
+          </Button>
+          <Button
+            variant={activeView === 'stats' ? 'default' : 'outline'}
+            onClick={() => setActiveView('stats')}
+            className="flex-1"
+          >
+            <BarChart3 className="h-4 w-4 mr-2" />
+            Estadísticas
+          </Button>
         </div>
 
-        <Tabs defaultValue="all">
-          <TabsList className="w-full">
-            <TabsTrigger value="all" className="flex-1">Todos</TabsTrigger>
-            <TabsTrigger value="low" className="flex-1">Bajo</TabsTrigger>
-            <TabsTrigger value="out" className="flex-1">Agotado</TabsTrigger>
-          </TabsList>
+        {activeView === 'list' ? (
+          <>
+            {/* Accordion with Stats */}
+            <Accordion type="single" collapsible defaultValue="stats">
+              <AccordionItem value="stats" className="border rounded-lg px-4">
+                <AccordionTrigger className="hover:no-underline">
+                  <span className="font-semibold">Resumen de Inventario</span>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <InventoryStats products={products} />
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
 
-          {['all', 'low', 'out'].map(tab => (
-            <TabsContent key={tab} value={tab} className="space-y-2 mt-4">
-              {isLoading ? (
-                <div className="flex justify-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin" />
-                </div>
-              ) : (
-                filteredProducts
-                  .filter(p => {
-                    if (tab === 'low') return p.stockStatus === 'low' || p.stockStatus === 'critical';
-                    if (tab === 'out') return p.stockStatus === 'out';
-                    return true;
-                  })
-                  .map(product => (
-                    <ProductCard
-                      key={product.id}
-                      product={product}
-                      isOwner={isOwner}
-                      isWarehouse={isWarehouse}
-                      onAdjustStock={() => setSelectedProduct(product)}
-                      onEdit={() => handleEdit(product)}
-                      onDelete={() => handleDelete(product)}
-                    />
-                  ))
+            {/* Search and Add */}
+            <div className="flex gap-2">
+              <Input
+                placeholder="Buscar..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="flex-1"
+              />
+              {isOwner && (
+                <Button onClick={openAddProduct}>
+                  <Plus className="h-4 w-4" />
+                </Button>
               )}
-            </TabsContent>
-          ))}
-        </Tabs>
+            </div>
+
+            {/* Product Tabs */}
+            <Tabs defaultValue="all">
+              <TabsList className="w-full">
+                <TabsTrigger value="all" className="flex-1">Todos</TabsTrigger>
+                <TabsTrigger value="low" className="flex-1">Bajo</TabsTrigger>
+                <TabsTrigger value="out" className="flex-1">Agotado</TabsTrigger>
+              </TabsList>
+
+              {['all', 'low', 'out'].map(tab => (
+                <TabsContent key={tab} value={tab} className="space-y-2 mt-4">
+                  {isLoading ? (
+                    <div className="flex justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin" />
+                    </div>
+                  ) : (
+                    filteredProducts
+                      .filter(p => {
+                        if (tab === 'low') return p.stockStatus === 'low' || p.stockStatus === 'critical';
+                        if (tab === 'out') return p.stockStatus === 'out';
+                        return true;
+                      })
+                      .map(product => (
+                        <div
+                          key={product.id}
+                          onClick={() => setDetailProduct(product)}
+                          className="cursor-pointer"
+                        >
+                          <ProductCard
+                            product={product}
+                            isOwner={isOwner}
+                            isWarehouse={isWarehouse}
+                            onAdjustStock={() => {
+                              setSelectedProduct(product);
+                            }}
+                            onEdit={() => handleEdit(product)}
+                            onDelete={() => handleDelete(product)}
+                          />
+                        </div>
+                      ))
+                  )}
+                </TabsContent>
+              ))}
+            </Tabs>
+          </>
+        ) : (
+          <div className="space-y-4">
+            {/* Stats Overview */}
+            <InventoryStats products={products} />
+
+            {/* Movement Timeline */}
+            <MovementTimeline movements={movements} isLoading={false} />
+          </div>
+        )}
       </main>
 
       {/* Add/Edit Product Form */}
@@ -247,6 +308,13 @@ export default function Inventory() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Product Detail Modal */}
+      <ProductDetailModal
+        product={detailProduct}
+        movements={movements}
+        onClose={() => setDetailProduct(null)}
+      />
 
       <BottomNav />
     </div>
