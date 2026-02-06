@@ -136,28 +136,22 @@ export function generateMovementsPDF({ businessName, movements, filters }: Expor
       columnStyles: {
         0: { cellWidth: 30 }, // Fecha
         1: { cellWidth: 'auto' }, // Producto
-        2: { cellWidth: 20 }, // Tipo
+        2: { cellWidth: 20, halign: 'center' }, // Tipo
         3: { cellWidth: 20, halign: 'center' }, // Cantidad
         4: { cellWidth: 20, halign: 'center' }, // Stock Anterior
         5: { cellWidth: 20, halign: 'center' }, // Stock Nuevo
         6: { cellWidth: 'auto' }, // Notas
       },
-      didDrawCell: (data) => {
-        // Color code the Type column
+      // Colorear las celdas de Tipo usando willDrawCell
+      willDrawCell: (data) => {
+        // Color code the Type column (column index 2)
         if (data.column.index === 2 && data.section === 'body') {
           const movement = sortedMovements[data.row.index];
           if (movement.type === 'entry') {
-            doc.setTextColor(22, 163, 74); // green-600
+            data.cell.styles.textColor = [22, 163, 74]; // green-600
           } else {
-            doc.setTextColor(220, 38, 38); // red-600
+            data.cell.styles.textColor = [220, 38, 38]; // red-600
           }
-          doc.text(
-            data.cell.text[0],
-            data.cell.x + data.cell.width / 2,
-            data.cell.y + data.cell.height / 2,
-            { align: 'center', baseline: 'middle' }
-          );
-          doc.setTextColor(0, 0, 0); // Reset to black
         }
       },
       margin: { top: 10, right: 14, bottom: 20, left: 14 },
