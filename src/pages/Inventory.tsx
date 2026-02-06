@@ -12,13 +12,16 @@ import DeleteProductDialog from '@/components/inventory/DeleteProductDialog';
 import InventoryStats from '@/components/inventory/InventoryStats';
 import MovementTimeline from '@/components/inventory/MovementTimeline';
 import ProductDetailModal from '@/components/inventory/ProductDetailModal';
+import ExportMovementsDialog, { ExportFilters } from '@/components/inventory/ExportMovementsDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Minus, Loader2, BarChart3, Package } from 'lucide-react';
+import { Plus, Minus, Loader2, BarChart3, Package, FileDown } from 'lucide-react';
 import { useSales } from '@/hooks/useSales';
+import { generateMovementsPDF } from '@/lib/movements-pdf-generator';
+import { toast } from 'sonner';
 
 export default function Inventory() {
   const { user } = useAuth();
@@ -42,6 +45,9 @@ export default function Inventory() {
   
   // Product detail modal
   const [detailProduct, setDetailProduct] = useState<ProductWithStatus | null>(null);
+  
+  // Export dialog
+  const [showExportDialog, setShowExportDialog] = useState(false);
   
   const [search, setSearch] = useState('');
   const [activeView, setActiveView] = useState<'list' | 'stats'>('list');
@@ -130,6 +136,23 @@ export default function Inventory() {
     setShowProductForm(true);
   };
 
+  const handleExportPDF = async (filters: ExportFilters) => {
+    try {
+      if (!currentBusiness) return;
+      
+      generateMovementsPDF({
+        businessName: currentBusiness.name,
+        movements: movements as any,
+        filters,
+      });
+      
+      toast.success('PDF generado exitosamente');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.error('Error al generar el PDF');
+    }
+  };
+
   return (
     <div className="page-container">
       <AppHeader title="Inventario" />
@@ -215,6 +238,14 @@ export default function Inventory() {
             {/* Stats Overview */}
             <InventoryStats products={products} />
 
+            {/* Export Button */}
+            <div className="flex justify-end">
+              <Button onClick={() => setShowExportDialog(true)} variant="outline">
+                <FileDown className="h-4 w-4 mr-2" />
+                Exportar a PDF
+              </Button>
+            </div>
+
             {/* Movement Timeline */}
             <MovementTimeline movements={movements} isLoading={false} />
           </div>
@@ -295,6 +326,15 @@ export default function Inventory() {
         product={detailProduct}
         movements={movements}
         onClose={() => setDetailProduct(null)}
+      />
+
+      {/* Export Movements Dialog */}
+      <ExportMovementsDialog
+        open={showExportDialog}
+        onOpenChange={setShowExportDialog}
+        movements={movements as any}
+        products={products}
+        onExport={handleExportPDF}
       />
 
       <BottomNav />
