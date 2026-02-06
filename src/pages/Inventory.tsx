@@ -17,7 +17,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Plus, Minus, Loader2, BarChart3, Package } from 'lucide-react';
 import { useSales } from '@/hooks/useSales';
 
@@ -158,18 +157,6 @@ export default function Inventory() {
 
         {activeView === 'list' ? (
           <>
-            {/* Accordion with Stats */}
-            <Accordion type="single" collapsible defaultValue="stats">
-              <AccordionItem value="stats" className="border rounded-lg px-4">
-                <AccordionTrigger className="hover:no-underline">
-                  <span className="font-semibold">Resumen de Inventario</span>
-                </AccordionTrigger>
-                <AccordionContent>
-                  <InventoryStats products={products} />
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-
             {/* Search and Add */}
             <div className="flex gap-2">
               <Input
